@@ -1,0 +1,2538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TVM Bus Tracker - Enhanced</title>
+    <!-- OpenLayers CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.3.0/ol.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #006847; /* KSRTC Green */
+            --secondary: #FFC107;
+            --dark: #212121;
+            --light: #f5f5f5;
+            --accent: #E53935;
+            
+            /* Dark mode variables */
+            --bg-dark: #121212;
+            --card-dark: #1e1e1e;
+            --text-dark: #e0e0e0;
+            --border-dark: #333;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        body {
+            background-color: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+        
+        body.dark-mode {
+            background-color: var(--bg-dark);
+            color: var(--text-dark);
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), #004d33);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+        
+        .map-container {
+            height: 600px;
+            background-color: #e0e0e0;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        .dark-mode .map-container {
+            background-color: #2a2a2a;
+            border-color: var(--border-dark);
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            padding: 0.8rem 1.2rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .dark-mode .search-box {
+            background-color: var(--card-dark);
+            color: var(--text-dark);
+            border-color: var(--border-dark);
+        }
+        
+        .search-btn {
+            padding: 0 1.8rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 1.5rem;
+        }
+        
+        .bus-list-container {
+            background-color: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .dark-mode .bus-list-container {
+            background-color: var(--card-dark);
+            border-color: var(--border-dark);
+        }
+        
+        .bus-item {
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .dark-mode .bus-item {
+            border-bottom-color: var(--border-dark);
+        }
+        
+        .bus-item:hover {
+            background-color: #f0f7f4;
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .dark-mode .bus-item:hover {
+            background-color: #2a3a35;
+        }
+        
+        .bus-item.active {
+            background-color: #e0f0e9;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .dark-mode .bus-item.active {
+            background-color: #1e3a31;
+        }
+        
+        .bus-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-right: 0.8rem;
+            min-width: 36px;
+            height: 36px;
+            font-size: 1.1rem;
+        }
+        
+        .bus-eta {
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        
+        .bus-stops {
+            color: #666;
+            font-size: 0.85rem;
+            margin-top: 0.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        
+        .dark-mode .bus-stops {
+            color: #aaa;
+        }
+        
+        /* Dark mode toggle */
+        .dark-mode-toggle {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: white;
+            font-size: 1.2rem;
+        }
+        
+        /* Enhanced bus details panel */
+        .bus-details {
+            background-color: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .dark-mode .bus-details {
+            background-color: var(--card-dark);
+        }
+        
+        .bus-details h3 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .bus-schedule {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .schedule-item {
+            background-color: #f5f5f5;
+            padding: 0.8rem;
+            border-radius: 8px;
+        }
+        
+        .dark-mode .schedule-item {
+            background-color: #2a2a2a;
+        }
+        
+        .book-btn {
+            width: 100%;
+            padding: 1rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-top: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        /* Payment modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .dark-mode .modal-content {
+            background-color: var(--card-dark);
+        }
+        
+        .modal-header {
+            background-color: var(--primary);
+            color: white;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .modal-body {
+            padding: 1.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        
+        .dark-mode .form-group input, 
+        .dark-mode .form-group select {
+            background-color: #2a2a2a;
+            color: var(--text-dark);
+            border-color: var(--border-dark);
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 1rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin-top: 1rem;
+            cursor: pointer;
+        }
+        
+        /* Time standard selector */
+        .time-standard-selector {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            z-index: 100;
+            background: rgba(255,255,255,0.9);
+            padding: 0.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .dark-mode .time-standard-selector {
+            background: rgba(30,30,30,0.9);
+        }
+        
+        .time-standard-selector select {
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            background-color: white;
+        }
+        
+        .dark-mode .time-standard-selector select {
+            background-color: var(--card-dark);
+            color: var(--text-dark);
+            border-color: var(--border-dark);
+        }
+        
+        /* Live status indicators */
+        .live-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #4CAF50;
+            margin-right: 5px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.7; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.7; }
+        }
+        
+        /* New styles for schedule-based ETA */
+        .eta-details {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.3rem;
+        }
+        
+        .dark-mode .eta-details {
+            color: #aaa;
+        }
+        
+        .eta-schedule {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            margin-top: 0.2rem;
+        }
+        
+        .eta-schedule i {
+            color: var(--primary);
+        }
+        
+        /* Responsive */
+        @media (max-width: 992px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .map-container {
+                height: 500px;
+            }
+            
+            .bus-list-container {
+                max-height: none;
+            }
+            
+            .time-standard-selector {
+                top: 5rem;
+                left: auto;
+                right: 1rem;
+            }
+        }
+
+        /* OpenLayers custom styles */
+        .ol-control button {
+            background-color: var(--primary) !important;
+            color: white !important;
+        }
+
+        .ol-zoom {
+            top: 4rem;
+            left: auto;
+            right: 0.5rem;
+        }
+
+        .ol-rotate {
+            top: 7rem;
+        }
+
+        .location-status {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            background: rgba(255,255,255,0.9);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            z-index: 100;
+            font-size: 0.9rem;
+        }
+
+        .dark-mode .location-status {
+            background: rgba(30,30,30,0.9);
+            color: var(--text-dark);
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255,255,255,0.9);
+            padding: 1.5rem;
+            border-radius: 8px;
+            z-index: 100;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .dark-mode .loading {
+            background: rgba(30,30,30,0.9);
+            color: var(--text-dark);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0,0,0,0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Popup styles */
+        .ol-popup {
+            position: absolute;
+            background-color: white;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #cccccc;
+            bottom: 12px;
+            left: -50px;
+            min-width: 200px;
+        }
+        
+        .dark-mode .ol-popup {
+            background-color: var(--card-dark);
+            border-color: var(--border-dark);
+        }
+        
+        .ol-popup:after, .ol-popup:before {
+            top: 100%;
+            border: solid transparent;
+            content: " ";
+            height: 0;
+            width: 0;
+            position: absolute;
+            pointer-events: none;
+        }
+        
+        .ol-popup:after {
+            border-top-color: white;
+            border-width: 10px;
+            left: 48px;
+            margin-left: -10px;
+        }
+        
+        .dark-mode .ol-popup:after {
+            border-top-color: var(--card-dark);
+        }
+        
+        .ol-popup:before {
+            border-top-color: #cccccc;
+            border-width: 11px;
+            left: 48px;
+            margin-left: -11px;
+        }
+        
+        .dark-mode .ol-popup:before {
+            border-top-color: var(--border-dark);
+        }
+        
+        .ol-popup-closer {
+            text-decoration: none;
+            position: absolute;
+            top: 2px;
+            right: 8px;
+        }
+        
+        .ol-popup-closer:after {
+            content: "✖";
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1><i class="fas fa-bus"></i> TVM City Bus Tracker</h1>
+        <p>Real-time tracking with accurate road-aligned routes</p>
+        <button class="dark-mode-toggle" id="dark-mode-toggle">
+            <i class="fas fa-moon"></i>
+        </button>
+    </header>
+    
+    <div class="container">
+        <div class="controls">
+            <input type="text" class="search-box" placeholder="Search by bus number or route..." id="search-input">
+            <button class="search-btn" id="search-btn">
+                <i class="fas fa-search"></i> Search
+            </button>
+        </div>
+        
+        <div class="main-content">
+            <div class="map-container">
+                <div class="time-standard-selector">
+                    <label for="time-standard">Time Format:</label>
+                    <select id="time-standard">
+                        <option value="12">12-hour (IST)</option>
+                        <option value="24">24-hour</option>
+                    </select>
+                </div>
+                <div id="map"></div>
+                <div class="location-status" id="location-status">
+                    <i class="fas fa-location-arrow"></i> Locating you...
+                </div>
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <div>Loading bus routes...</div>
+                </div>
+            </div>
+            
+            <div class="bus-list-container">
+                <h3><i class="fas fa-route"></i> Available Bus Routes <span class="live-status"></span> LIVE</h3>
+                <div class="bus-list" id="bus-list">
+                    <!-- Bus items will be added by JavaScript -->
+                </div>
+                
+                <div class="bus-details" id="bus-details">
+                    <!-- Bus details will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Payment Modal -->
+    <div class="modal" id="payment-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-ticket-alt"></i> Book Ticket</h3>
+                <button class="close-modal" id="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="payment-bus-details">
+                    <!-- Bus details for payment will be inserted here -->
+                </div>
+                
+                <div class="form-group">
+                    <label for="passenger-name">Full Name</label>
+                    <input type="text" id="passenger-name" placeholder="Enter your full name">
+                </div>
+                
+                <div class="form-group">
+                    <label for="passenger-phone">Phone Number</label>
+                    <input type="tel" id="passenger-phone" placeholder="Enter your phone number">
+                </div>
+                
+                <div class="form-group">
+                    <label for="ticket-type">Ticket Type</label>
+                    <select id="ticket-type">
+                        <option value="single">Single Journey (₹15)</option>
+                        <option value="daily">Daily Pass (₹50)</option>
+                        <option value="weekly">Weekly Pass (₹200)</option>
+                        <option value="monthly">Monthly Pass (₹600)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="payment-method">Payment Method</label>
+                    <select id="payment-method">
+                        <option value="card">Credit/Debit Card</option>
+                        <option value="upi">UPI Payment</option>
+                        <option value="wallet">Mobile Wallet</option>
+                    </select>
+                </div>
+                
+                <button class="submit-btn" id="submit-payment">
+                    <i class="fas fa-credit-card"></i> Confirm Payment
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- OpenLayers JS -->
+    <script src="https://cdn.jsdelivr.net/npm/ol@v7.3.0/dist/ol.js"></script>
+    <script>
+        // Enhanced TVM bus routes with schedule-based ETA calculation
+        const busRoutes = {
+            1: { // East Fort - Pettah (via Statue, Pattom)
+                name: "East Fort - Pettah",
+                waypoints: [
+                    {lat: 8.4829, lon: 76.9474}, // East Fort
+                    {lat: 8.4832, lon: 76.9476}, // MG Road start
+                    {lat: 8.4838, lon: 76.9481}, // MG Road mid
+                    {lat: 8.4845, lon: 76.9488}, // Statue Junction
+                    {lat: 8.4852, lon: 76.9493}, // Towards Pattom
+                    {lat: 8.4865, lon: 76.9502}, // Pattom Junction
+                    {lat: 8.4880, lon: 76.9510}, // Pattom-Pettah Road
+                    {lat: 8.4900, lon: 76.9525}, // Pettah approach
+                    {lat: 8.4920, lon: 76.9535}  // Pettah Terminal
+                ],
+                color: '#E53935', // Red
+                stops: [
+                    {name: "East Fort", facilities: ["ticket-counter", "waiting-area"], distance: 0},
+                    {name: "Statue", facilities: ["bus-stop"], distance: 0.5},
+                    {name: "Pattom", facilities: ["ticket-counter", "toilet"], distance: 1.2},
+                    {name: "Pettah", facilities: ["terminal", "canteen", "toilet"], distance: 1.8}
+                ],
+                schedule: {
+                    weekdays: [
+                        {time: "06:00", isScheduled: true},
+                        {time: "06:15", isScheduled: true},
+                        {time: "06:30", isScheduled: true},
+                        {time: "06:45", isScheduled: true},
+                        {time: "07:00", isScheduled: true},
+                        {time: "07:15", isScheduled: true},
+                        {time: "07:30", isScheduled: true},
+                        {time: "07:45", isScheduled: true},
+                        {time: "08:00", isScheduled: true},
+                        {time: "08:15", isScheduled: true},
+                        {time: "08:30", isScheduled: true},
+                        {time: "08:45", isScheduled: true},
+                        {time: "09:00", isScheduled: true},
+                        {time: "09:15", isScheduled: true},
+                        {time: "09:30", isScheduled: true},
+                        {time: "09:45", isScheduled: true},
+                        {time: "10:00", isScheduled: true},
+                        {time: "10:15", isScheduled: true},
+                        {time: "10:30", isScheduled: true},
+                        {time: "10:45", isScheduled: true},
+                        {time: "11:00", isScheduled: true},
+                        {time: "11:15", isScheduled: true},
+                        {time: "11:30", isScheduled: true},
+                        {time: "11:45", isScheduled: true},
+                        {time: "12:00", isScheduled: true},
+                        {time: "12:15", isScheduled: true},
+                        {time: "12:30", isScheduled: true},
+                        {time: "12:45", isScheduled: true},
+                        {time: "13:00", isScheduled: true},
+                        {time: "13:15", isScheduled: true},
+                        {time: "13:30", isScheduled: true},
+                        {time: "13:45", isScheduled: true},
+                        {time: "14:00", isScheduled: true},
+                        {time: "14:15", isScheduled: true},
+                        {time: "14:30", isScheduled: true},
+                        {time: "14:45", isScheduled: true},
+                        {time: "15:00", isScheduled: true},
+                        {time: "15:15", isScheduled: true},
+                        {time: "15:30", isScheduled: true},
+                        {time: "15:45", isScheduled: true},
+                        {time: "16:00", isScheduled: true},
+                        {time: "16:15", isScheduled: true},
+                        {time: "16:30", isScheduled: true},
+                        {time: "16:45", isScheduled: true},
+                        {time: "17:00", isScheduled: true},
+                        {time: "17:15", isScheduled: true},
+                        {time: "17:30", isScheduled: true},
+                        {time: "17:45", isScheduled: true},
+                        {time: "18:00", isScheduled: true},
+                        {time: "18:15", isScheduled: true},
+                        {time: "18:30", isScheduled: true},
+                        {time: "18:45", isScheduled: true},
+                        {time: "19:00", isScheduled: true},
+                        {time: "19:15", isScheduled: true},
+                        {time: "19:30", isScheduled: true},
+                        {time: "19:45", isScheduled: true},
+                        {time: "20:00", isScheduled: true},
+                        {time: "20:15", isScheduled: true},
+                        {time: "20:30", isScheduled: true},
+                        {time: "20:45", isScheduled: true},
+                        {time: "21:00", isScheduled: true},
+                        {time: "21:15", isScheduled: true},
+                        {time: "21:30", isScheduled: true}
+                    ],
+                    weekends: [
+                        {time: "06:30", isScheduled: true},
+                        {time: "07:00", isScheduled: true},
+                        {time: "07:30", isScheduled: true},
+                        {time: "08:00", isScheduled: true},
+                        {time: "08:30", isScheduled: true},
+                        {time: "09:00", isScheduled: true},
+                        {time: "09:30", isScheduled: true},
+                        {time: "10:00", isScheduled: true},
+                        {time: "10:30", isScheduled: true},
+                        {time: "11:00", isScheduled: true},
+                        {time: "11:30", isScheduled: true},
+                        {time: "12:00", isScheduled: true},
+                        {time: "12:30", isScheduled: true},
+                        {time: "13:00", isScheduled: true},
+                        {time: "13:30", isScheduled: true},
+                        {time: "14:00", isScheduled: true},
+                        {time: "14:30", isScheduled: true},
+                        {time: "15:00", isScheduled: true},
+                        {time: "15:30", isScheduled: true},
+                        {time: "16:00", isScheduled: true},
+                        {time: "16:30", isScheduled: true},
+                        {time: "17:00", isScheduled: true},
+                        {time: "17:30", isScheduled: true},
+                        {time: "18:00", isScheduled: true},
+                        {time: "18:30", isScheduled: true},
+                        {time: "19:00", isScheduled: true},
+                        {time: "19:30", isScheduled: true},
+                        {time: "20:00", isScheduled: true},
+                        {time: "20:30", isScheduled: true},
+                        {time: "21:00", isScheduled: true}
+                    ],
+                    frequency: {
+                        weekdays: "Every 15 minutes from 6:00 AM to 9:30 PM",
+                        weekends: "Every 30 minutes from 6:30 AM to 9:00 PM"
+                    }
+                },
+                averageTripTime: 30, // minutes for full route
+                fare: {
+                    normal: 15,
+                    student: 10,
+                    senior: 8,
+                    monthly: 400
+                },
+                facilities: ["Low-floor", "AC", "Wheelchair-accessible"],
+                operator: "KSRTC",
+                contact: "0471-2462299",
+                lastUpdated: new Date(),
+                speed: 20 // km/h
+            },
+            2: { // Peroorkada - Kowdiar (via Kesavadasapuram)
+                name: "Peroorkada - Kowdiar",
+                waypoints: [
+                    {lat: 8.5060, lon: 76.9542}, // Peroorkada
+                    {lat: 8.5052, lon: 76.9535}, // Peroorkada Road
+                    {lat: 8.5040, lon: 76.9525}, // Towards Kesavadasapuram
+                    {lat: 8.5030, lon: 76.9515}, // Kesavadasapuram Jn
+                    {lat: 8.5015, lon: 76.9502}, // Vellayambalam Road
+                    {lat: 8.5005, lon: 76.9490}, // Kowdiar approach
+                    {lat: 8.5000, lon: 76.9480}  // Kowdiar Terminus
+                ],
+                color: '#006847', // KSRTC Green
+                stops: [
+                    {name: "Peroorkada", facilities: ["terminal", "ticket-counter", "toilet"], distance: 0},
+                    {name: "Kesavadasapuram", facilities: ["bus-stop"], distance: 0.8},
+                    {name: "Vellayambalam", facilities: ["bus-stop", "toilet"], distance: 1.4},
+                    {name: "Kowdiar", facilities: ["terminal", "ticket-counter"], distance: 1.9}
+                ],
+                schedule: {
+                    weekdays: [
+                        {time: "06:15", isScheduled: true},
+                        {time: "06:30", isScheduled: true},
+                        {time: "06:45", isScheduled: true},
+                        {time: "07:00", isScheduled: true},
+                        {time: "07:15", isScheduled: true},
+                        {time: "07:30", isScheduled: true},
+                        {time: "07:45", isScheduled: true},
+                        {time: "08:00", isScheduled: true},
+                        {time: "08:15", isScheduled: true},
+                        {time: "08:30", isScheduled: true},
+                        {time: "08:45", isScheduled: true},
+                        {time: "09:00", isScheduled: true},
+                        {time: "09:15", isScheduled: true},
+                        {time: "09:30", isScheduled: true},
+                        {time: "09:45", isScheduled: true},
+                        {time: "10:00", isScheduled: true},
+                        {time: "10:15", isScheduled: true},
+                        {time: "10:30", isScheduled: true},
+                        {time: "10:45", isScheduled: true},
+                        {time: "11:00", isScheduled: true},
+                        {time: "11:15", isScheduled: true},
+                        {time: "11:30", isScheduled: true},
+                        {time: "11:45", isScheduled: true},
+                        {time: "12:00", isScheduled: true},
+                        {time: "12:15", isScheduled: true},
+                        {time: "12:30", isScheduled: true},
+                        {time: "12:45", isScheduled: true},
+                        {time: "13:00", isScheduled: true},
+                        {time: "13:15", isScheduled: true},
+                        {time: "13:30", isScheduled: true},
+                        {time: "13:45", isScheduled: true},
+                        {time: "14:00", isScheduled: true},
+                        {time: "14:15", isScheduled: true},
+                        {time: "14:30", isScheduled: true},
+                        {time: "14:45", isScheduled: true},
+                        {time: "15:00", isScheduled: true},
+                        {time: "15:15", isScheduled: true},
+                        {time: "15:30", isScheduled: true},
+                        {time: "15:45", isScheduled: true},
+                        {time: "16:00", isScheduled: true},
+                        {time: "16:15", isScheduled: true},
+                        {time: "16:30", isScheduled: true},
+                        {time: "16:45", isScheduled: true},
+                        {time: "17:00", isScheduled: true},
+                        {time: "17:15", isScheduled: true},
+                        {time: "17:30", isScheduled: true},
+                        {time: "17:45", isScheduled: true},
+                        {time: "18:00", isScheduled: true},
+                        {time: "18:15", isScheduled: true},
+                        {time: "18:30", isScheduled: true},
+                        {time: "18:45", isScheduled: true},
+                        {time: "19:00", isScheduled: true},
+                        {time: "19:15", isScheduled: true},
+                        {time: "19:30", isScheduled: true},
+                        {time: "19:45", isScheduled: true},
+                        {time: "20:00", isScheduled: true},
+                        {time: "20:15", isScheduled: true},
+                        {time: "20:30", isScheduled: true},
+                        {time: "20:45", isScheduled: true},
+                        {time: "21:00", isScheduled: true},
+                        {time: "21:15", isScheduled: true}
+                    ],
+                    weekends: [
+                        {time: "07:00", isScheduled: true},
+                        {time: "07:30", isScheduled: true},
+                        {time: "08:00", isScheduled: true},
+                        {time: "08:30", isScheduled: true},
+                        {time: "09:00", isScheduled: true},
+                        {time: "09:30", isScheduled: true},
+                        {time: "10:00", isScheduled: true},
+                        {time: "10:30", isScheduled: true},
+                        {time: "11:00", isScheduled: true},
+                        {time: "11:30", isScheduled: true},
+                        {time: "12:00", isScheduled: true},
+                        {time: "12:30", isScheduled: true},
+                        {time: "13:00", isScheduled: true},
+                        {time: "13:30", isScheduled: true},
+                        {time: "14:00", isScheduled: true},
+                        {time: "14:30", isScheduled: true},
+                        {time: "15:00", isScheduled: true},
+                        {time: "15:30", isScheduled: true},
+                        {time: "16:00", isScheduled: true},
+                        {time: "16:30", isScheduled: true},
+                        {time: "17:00", isScheduled: true},
+                        {time: "17:30", isScheduled: true},
+                        {time: "18:00", isScheduled: true},
+                        {time: "18:30", isScheduled: true},
+                        {time: "19:00", isScheduled: true},
+                        {time: "19:30", isScheduled: true},
+                        {time: "20:00", isScheduled: true},
+                        {time: "20:30", isScheduled: true},
+                        {time: "21:00", isScheduled: true}
+                    ],
+                    frequency: {
+                        weekdays: "Every 15 minutes from 6:15 AM to 9:15 PM",
+                        weekends: "Every 30 minutes from 7:00 AM to 9:00 PM"
+                    }
+                },
+                averageTripTime: 25, // minutes for full route
+                fare: {
+                    normal: 12,
+                    student: 8,
+                    senior: 6,
+                    monthly: 350
+                },
+                facilities: ["Non-AC", "Regular"],
+                operator: "KSRTC",
+                contact: "0471-2462298",
+                lastUpdated: new Date(),
+                speed: 18 // km/h
+            },
+            3: { // Thampanoor - Vikas Bhavan (via PMG, Palayam)
+                name: "Thampanoor - Vikas Bhavan",
+                waypoints: [
+                    {lat: 8.4849, lon: 76.9515}, // Thampanoor
+                    {lat: 8.4855, lon: 76.9520}, // Thampanoor Road
+                    {lat: 8.4865, lon: 76.9530}, // PMG Junction
+                    {lat: 8.4875, lon: 76.9540}, // University College
+                    {lat: 8.4885, lon: 76.9555}, // Palayam Junction
+                    {lat: 8.4900, lon: 76.9570}, // Museum Road
+                    {lat: 8.4910, lon: 76.9580}  // Vikas Bhavan
+                ],
+                color: '#1E88E5', // Blue
+                stops: [
+                    {name: "Thampanoor", facilities: ["terminal", "ticket-counter", "waiting-area", "toilet"], distance: 0},
+                    {name: "PMG", facilities: ["bus-stop"], distance: 0.4},
+                    {name: "Palayam", facilities: ["bus-stop", "shopping"], distance: 0.9},
+                    {name: "Vikas Bhavan", facilities: ["terminal"], distance: 1.5}
+                ],
+                schedule: {
+                    weekdays: [
+                        {time: "06:00", isScheduled: true},
+                        {time: "06:10", isScheduled: true},
+                        {time: "06:20", isScheduled: true},
+                        {time: "06:30", isScheduled: true},
+                        {time: "06:40", isScheduled: true},
+                        {time: "06:50", isScheduled: true},
+                        {time: "07:00", isScheduled: true},
+                        {time: "07:10", isScheduled: true},
+                        {time: "07:20", isScheduled: true},
+                        {time: "07:30", isScheduled: true},
+                        {time: "07:40", isScheduled: true},
+                        {time: "07:50", isScheduled: true},
+                        {time: "08:00", isScheduled: true},
+                        {time: "08:10", isScheduled: true},
+                        {time: "08:20", isScheduled: true},
+                        {time: "08:30", isScheduled: true},
+                        {time: "08:40", isScheduled: true},
+                        {time: "08:50", isScheduled: true},
+                        {time: "09:00", isScheduled: true},
+                        {time: "09:10", isScheduled: true},
+                        {time: "09:20", isScheduled: true},
+                        {time: "09:30", isScheduled: true},
+                        {time: "09:40", isScheduled: true},
+                        {time: "09:50", isScheduled: true},
+                        {time: "10:00", isScheduled: true},
+                        {time: "10:10", isScheduled: true},
+                        {time: "10:20", isScheduled: true},
+                        {time: "10:30", isScheduled: true},
+                        {time: "10:40", isScheduled: true},
+                        {time: "10:50", isScheduled: true},
+                        {time: "11:00", isScheduled: true},
+                        {time: "11:10", isScheduled: true},
+                        {time: "11:20", isScheduled: true},
+                        {time: "11:30", isScheduled: true},
+                        {time: "11:40", isScheduled: true},
+                        {time: "11:50", isScheduled: true},
+                        {time: "12:00", isScheduled: true},
+                        {time: "12:10", isScheduled: true},
+                        {time: "12:20", isScheduled: true},
+                        {time: "12:30", isScheduled: true},
+                        {time: "12:40", isScheduled: true},
+                        {time: "12:50", isScheduled: true},
+                        {time: "13:00", isScheduled: true},
+                        {time: "13:10", isScheduled: true},
+                        {time: "13:20", isScheduled: true},
+                        {time: "13:30", isScheduled: true},
+                        {time: "13:40", isScheduled: true},
+                        {time: "13:50", isScheduled: true},
+                        {time: "14:00", isScheduled: true},
+                        {time: "14:10", isScheduled: true},
+                        {time: "14:20", isScheduled: true},
+                        {time: "14:30", isScheduled: true},
+                        {time: "14:40", isScheduled: true},
+                        {time: "14:50", isScheduled: true},
+                        {time: "15:00", isScheduled: true},
+                        {time: "15:10", isScheduled: true},
+                        {time: "15:20", isScheduled: true},
+                        {time: "15:30", isScheduled: true},
+                        {time: "15:40", isScheduled: true},
+                        {time: "15:50", isScheduled: true},
+                        {time: "16:00", isScheduled: true},
+                        {time: "16:10", isScheduled: true},
+                        {time: "16:20", isScheduled: true},
+                        {time: "16:30", isScheduled: true},
+                        {time: "16:40", isScheduled: true},
+                        {time: "16:50", isScheduled: true},
+                        {time: "17:00", isScheduled: true},
+                        {time: "17:10", isScheduled: true},
+                        {time: "17:20", isScheduled: true},
+                        {time: "17:30", isScheduled: true},
+                        {time: "17:40", isScheduled: true},
+                        {time: "17:50", isScheduled: true},
+                        {time: "18:00", isScheduled: true},
+                        {time: "18:10", isScheduled: true},
+                        {time: "18:20", isScheduled: true},
+                        {time: "18:30", isScheduled: true},
+                        {time: "18:40", isScheduled: true},
+                        {time: "18:50", isScheduled: true},
+                        {time: "19:00", isScheduled: true},
+                        {time: "19:10", isScheduled: true},
+                        {time: "19:20", isScheduled: true},
+                        {time: "19:30", isScheduled: true},
+                        {time: "19:40", isScheduled: true},
+                        {time: "19:50", isScheduled: true},
+                        {time: "20:00", isScheduled: true},
+                        {time: "20:10", isScheduled: true},
+                        {time: "20:20", isScheduled: true},
+                        {time: "20:30", isScheduled: true},
+                        {time: "20:40", isScheduled: true},
+                        {time: "20:50", isScheduled: true},
+                        {time: "21:00", isScheduled: true},
+                        {time: "21:10", isScheduled: true},
+                        {time: "21:20", isScheduled: true},
+                        {time: "21:30", isScheduled: true},
+                        {time: "21:40", isScheduled: true},
+                        {time: "21:50", isScheduled: true},
+                        {time: "22:00", isScheduled: true}
+                    ],
+                    weekends: [
+                        {time: "06:30", isScheduled: true},
+                        {time: "07:00", isScheduled: true},
+                        {time: "07:30", isScheduled: true},
+                        {time: "08:00", isScheduled: true},
+                        {time: "08:30", isScheduled: true},
+                        {time: "09:00", isScheduled: true},
+                        {time: "09:30", isScheduled: true},
+                        {time: "10:00", isScheduled: true},
+                        {time: "10:30", isScheduled: true},
+                        {time: "11:00", isScheduled: true},
+                        {time: "11:30", isScheduled: true},
+                        {time: "12:00", isScheduled: true},
+                        {time: "12:30", isScheduled: true},
+                        {time: "13:00", isScheduled: true},
+                        {time: "13:30", isScheduled: true},
+                        {time: "14:00", isScheduled: true},
+                        {time: "14:30", isScheduled: true},
+                        {time: "15:00", isScheduled: true},
+                        {time: "15:30", isScheduled: true},
+                        {time: "16:00", isScheduled: true},
+                        {time: "16:30", isScheduled: true},
+                        {time: "17:00", isScheduled: true},
+                        {time: "17:30", isScheduled: true},
+                        {time: "18:00", isScheduled: true},
+                        {time: "18:30", isScheduled: true},
+                        {time: "19:00", isScheduled: true},
+                        {time: "19:30", isScheduled: true},
+                        {time: "20:00", isScheduled: true},
+                        {time: "20:30", isScheduled: true},
+                        {time: "21:00", isScheduled: true},
+                        {time: "21:30", isScheduled: true},
+                        {time: "22:00", isScheduled: true}
+                    ],
+                    frequency: {
+                        weekdays: "Every 10 minutes from 6:00 AM to 10:00 PM",
+                        weekends: "Every 30 minutes from 6:30 AM to 10:00 PM"
+                    }
+                },
+                averageTripTime: 20, // minutes for full route
+                fare: {
+                    normal: 10,
+                    student: 7,
+                    senior: 5,
+                    monthly: 300
+                },
+                facilities: ["AC", "WiFi", "USB Charging"],
+                operator: "Private Operator",
+                contact: "9895123456",
+                lastUpdated: new Date(),
+                speed: 25 // km/h
+            },
+            5: { // Kazhakootam - Medical College
+                name: "Kazhakootam - Medical College",
+                waypoints: [
+                    {lat: 8.5667, lon: 76.8800}, // Kazhakootam
+                    {lat: 8.5600, lon: 76.8900}, // Sreekaryam
+                    {lat: 8.5500, lon: 76.9000}, // Ulloor
+                    {lat: 8.5300, lon: 76.9200}  // Medical College
+                ],
+                color: '#8E24AA', // Purple
+                stops: [
+                    {name: "Kazhakootam", facilities: ["terminal", "ticket-counter", "toilet"], distance: 0},
+                    {name: "Sreekaryam", facilities: ["bus-stop"], distance: 1.5},
+                    {name: "Ulloor", facilities: ["bus-stop", "toilet"], distance: 3.0},
+                    {name: "Medical College", facilities: ["terminal", "ticket-counter"], distance: 4.5}
+                ],
+                schedule: {
+                    weekdays: [
+                        {time: "06:30", isScheduled: true},
+                        {time: "07:00", isScheduled: true},
+                        {time: "07:30", isScheduled: true},
+                        {time: "08:00", isScheduled: true},
+                        {time: "08:30", isScheduled: true},
+                        {time: "09:00", isScheduled: true},
+                        {time: "09:30", isScheduled: true},
+                        {time: "10:00", isScheduled: true},
+                        {time: "10:30", isScheduled: true},
+                        {time: "11:00", isScheduled: true},
+                        {time: "11:30", isScheduled: true},
+                        {time: "12:00", isScheduled: true},
+                        {time: "12:30", isScheduled: true},
+                        {time: "13:00", isScheduled: true},
+                        {time: "13:30", isScheduled: true},
+                        {time: "14:00", isScheduled: true},
+                        {time: "14:30", isScheduled: true},
+                        {time: "15:00", isScheduled: true},
+                        {time: "15:30", isScheduled: true},
+                        {time: "16:00", isScheduled: true},
+                        {time: "16:30", isScheduled: true},
+                        {time: "17:00", isScheduled: true},
+                        {time: "17:30", isScheduled: true},
+                        {time: "18:00", isScheduled: true},
+                        {time: "18:30", isScheduled: true},
+                        {time: "19:00", isScheduled: true},
+                        {time: "19:30", isScheduled: true},
+                        {time: "20:00", isScheduled: true},
+                        {time: "20:30", isScheduled: true},
+                        {time: "21:00", isScheduled: true}
+                    ],
+                    weekends: [
+                        {time: "07:00", isScheduled: true},
+                        {time: "08:00", isScheduled: true},
+                        {time: "09:00", isScheduled: true},
+                        {time: "10:00", isScheduled: true},
+                        {time: "11:00", isScheduled: true},
+                        {time: "12:00", isScheduled: true},
+                        {time: "13:00", isScheduled: true},
+                        {time: "14:00", isScheduled: true},
+                        {time: "15:00", isScheduled: true},
+                        {time: "16:00", isScheduled: true},
+                        {time: "17:00", isScheduled: true},
+                        {time: "18:00", isScheduled: true},
+                        {time: "19:00", isScheduled: true},
+                        {time: "20:00", isScheduled: true},
+                        {time: "21:00", isScheduled: true}
+                    ],
+                    frequency: {
+                        weekdays: "Every 30 minutes from 6:30 AM to 9:00 PM",
+                        weekends: "Every 60 minutes from 7:00 AM to 9:00 PM"
+                    }
+                },
+                averageTripTime: 45, // minutes for full route
+                fare: {
+                    normal: 20,
+                    student: 12,
+                    senior: 10,
+                    monthly: 500
+                },
+                facilities: ["AC", "Express"],
+                operator: "KSRTC",
+                contact: "0471-2462297",
+                lastUpdated: new Date(),
+                speed: 30 // km/h
+            },
+            7: { // Varkala - Thiruvananthapuram Central
+                name: "Varkala - TVM Central",
+                waypoints: [
+                    {lat: 8.7333, lon: 76.7167}, // Varkala
+                    {lat: 8.7000, lon: 76.7667}, // Attingal
+                    {lat: 8.6500, lon: 76.8500}, // Balaramapuram
+                    {lat: 8.5000, lon: 76.9500}  // TVM Central
+                ],
+                color: '#FF9800', // Orange
+                stops: [
+                    {name: "Varkala", facilities: ["terminal", "ticket-counter", "toilet", "waiting-area"], distance: 0},
+                    {name: "Attingal", facilities: ["bus-stop", "ticket-counter"], distance: 15},
+                    {name: "Balaramapuram", facilities: ["bus-stop"], distance: 25},
+                    {name: "TVM Central", facilities: ["terminal", "ticket-counter", "toilet", "waiting-area"], distance: 35}
+                ],
+                schedule: {
+                    weekdays: [
+                        {time: "05:30", isScheduled: true},
+                        {time: "06:30", isScheduled: true},
+                        {time: "07:30", isScheduled: true},
+                        {time: "08:30", isScheduled: true},
+                        {time: "09:30", isScheduled: true},
+                        {time: "10:30", isScheduled: true},
+                        {time: "11:30", isScheduled: true},
+                        {time: "12:30", isScheduled: true},
+                        {time: "13:30", isScheduled: true},
+                        {time: "14:30", isScheduled: true},
+                        {time: "15:30", isScheduled: true},
+                        {time: "16:30", isScheduled: true},
+                        {time: "17:30", isScheduled: true},
+                        {time: "18:30", isScheduled: true},
+                        {time: "19:30", isScheduled: true},
+                        {time: "20:30", isScheduled: true},
+                        {time: "21:30", isScheduled: true},
+                        {time: "22:30", isScheduled: true}
+                    ],
+                    weekends: [
+                        {time: "06:00", isScheduled: true},
+                        {time: "07:00", isScheduled: true},
+                        {time: "08:00", isScheduled: true},
+                        {time: "09:00", isScheduled: true},
+                        {time: "10:00", isScheduled: true},
+                        {time: "11:00", isScheduled: true},
+                        {time: "12:00", isScheduled: true},
+                        {time: "13:00", isScheduled: true},
+                        {time: "14:00", isScheduled: true},
+                        {time: "15:00", isScheduled: true},
+                        {time: "16:00", isScheduled: true},
+                        {time: "17:00", isScheduled: true},
+                        {time: "18:00", isScheduled: true},
+                        {time: "19:00", isScheduled: true},
+                        {time: "20:00", isScheduled: true},
+                        {time: "21:00", isScheduled: true},
+                        {time: "22:00", isScheduled: true}
+                    ],
+                    frequency: {
+                        weekdays: "Every 60 minutes from 5:30 AM to 10:30 PM",
+                        weekends: "Every 60 minutes from 6:00 AM to 10:00 PM"
+                    }
+                },
+                averageTripTime: 90, // minutes for full route
+                fare: {
+                    normal: 30,
+                    student: 20,
+                    senior: 15,
+                    monthly: 800
+                },
+                facilities: ["AC", "Luxury", "Reclining Seats"],
+                operator: "KSRTC",
+                contact: "0471-2462296",
+                lastUpdated: new Date(),
+                speed: 35 // km/h
+            }
+        };
+
+        // Global variables
+        let map;
+        let userLocationMarker;
+        let busMarkers = {};
+        let busRoutesPolylines = {};
+        let userLocation = null;
+        let locationWatchId = null;
+        let currentSelectedBus = null;
+        let timeStandard = '12'; // Default to 12-hour IST format
+        let busPositions = {}; // To store current bus positions
+        let lastUpdateTimes = {}; // To store last update times for buses
+        
+        // Initialize OpenLayers Map
+        function initMap() {
+    // Create map with OpenStreetMap base layer
+    map = new ol.Map({
+        target: 'map',
+        layers: [
+            new ol.layer.Tile({
+                source: new ol.source.OSM()
+            })
+        ],
+        view: new ol.View({
+            center: ol.proj.fromLonLat([76.9474, 8.4829]), // East Fort
+            zoom: 13
+        }),
+        controls: [
+            new ol.control.Attribution({
+                collapsible: false,
+                collapsed: false
+            }),
+            new ol.control.Zoom(),
+            new ol.control.Rotate()
+            // Add additional controls here if needed
+        ]
+    });
+    
+    // Start tracking user location
+    startLocationTracking();
+    
+    // Initialize bus routes
+    initializeBusRoutes();
+    
+    // Initialize dark mode toggle
+    initDarkModeToggle();
+    
+    // Initialize time standard selector
+    initTimeStandardSelector();
+    
+    // Initialize bus positions
+    initializeBusPositions();
+}
+        // Initialize bus positions
+        function initializeBusPositions() {
+            Object.keys(busRoutes).forEach(busId => {
+                busPositions[busId] = {
+                    currentLocation: busRoutes[busId].waypoints[0],
+                    currentIndex: 0,
+                    lastUpdate: new Date(),
+                    isActive: false,
+                    lastDepartureTime: null
+                };
+                
+                // Randomly activate some buses (for demo purposes)
+                if (Math.random() > 0.3) {
+                    activateBus(busId);
+                }
+            });
+        }
+        
+        // Activate a bus (start its journey)
+        function activateBus(busId) {
+            const position = busPositions[busId];
+            position.isActive = true;
+            position.lastDepartureTime = new Date();
+            
+            // Find the next scheduled departure time
+            const now = new Date();
+            const currentHours = now.getHours();
+            const currentMinutes = now.getMinutes();
+            const currentTimeInMinutes = currentHours * 60 + currentMinutes;
+            const isWeekend = [0, 6].includes(now.getDay()); // 0=Sunday, 6=Saturday
+            const schedule = isWeekend ? busRoutes[busId].schedule.weekends : busRoutes[busId].schedule.weekdays;
+            
+            for (const bus of schedule) {
+                if (bus.isScheduled) {
+                    const [hours, minutes] = bus.time.split(':').map(Number);
+                    const busTimeInMinutes = hours * 60 + minutes;
+                    
+                    if (busTimeInMinutes >= currentTimeInMinutes) {
+                        position.lastDepartureTime = new Date();
+                        position.lastDepartureTime.setHours(hours, minutes, 0, 0);
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Initialize dark mode toggle
+        function initDarkModeToggle() {
+            const toggle = document.getElementById('dark-mode-toggle');
+            const isDarkMode = localStorage.getItem('darkMode') === 'true';
+            
+            if (isDarkMode) {
+                document.body.classList.add('dark-mode');
+                toggle.innerHTML = '<i class="fas fa-sun"></i>';
+            }
+            
+            toggle.addEventListener('click', function() {
+                document.body.classList.toggle('dark-mode');
+                const isDark = document.body.classList.contains('dark-mode');
+                localStorage.setItem('darkMode', isDark);
+                toggle.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+            });
+        }
+        
+        // Initialize time standard selector
+        function initTimeStandardSelector() {
+            const selector = document.getElementById('time-standard');
+            const savedStandard = localStorage.getItem('timeStandard');
+            
+            if (savedStandard) {
+                timeStandard = savedStandard;
+                selector.value = savedStandard;
+            }
+            
+            selector.addEventListener('change', function() {
+                timeStandard = this.value;
+                localStorage.setItem('timeStandard', timeStandard);
+                updateAllTimeDisplays();
+            });
+        }
+        
+        // Update all time displays on the page
+        function updateAllTimeDisplays() {
+            // Update last updated times for buses
+            Object.keys(lastUpdateTimes).forEach(busId => {
+                updateBusLastUpdatedDisplay(busId);
+            });
+            
+            // Update any other time displays if needed
+        }
+        
+        // Format time based on selected standard
+        function formatTime(date, includeSeconds = false) {
+            if (!date) return "N/A";
+            
+            if (timeStandard === '24') {
+                return date.toLocaleTimeString('en-IN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: includeSeconds ? '2-digit' : undefined,
+                    hour12: false
+                });
+            } else {
+                return date.toLocaleTimeString('en-IN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: includeSeconds ? '2-digit' : undefined,
+                    hour12: true
+                });
+            }
+        }
+        
+        // Initialize bus routes with accurate paths
+        async function initializeBusRoutes() {
+            try {
+                // Create bus routes with road snap
+                for (const busId in busRoutes) {
+                    await createBusRoute(busId);
+                }
+                
+                // Generate bus list
+                generateBusList();
+                
+                // Start bus movement simulation
+                simulateBusMovement();
+                
+                // Hide loading spinner
+                document.getElementById('loading').style.display = 'none';
+            } catch (error) {
+                console.error("Error initializing routes:", error);
+                document.getElementById('loading').innerHTML = `
+                    <i class="fas fa-exclamation-triangle"></i> Error loading routes. Please refresh.
+                `;
+            }
+        }
+        
+        // Create accurate bus route
+        async function createBusRoute(busId) {
+            const route = busRoutes[busId];
+            
+            try {
+                // Get precise road-aligned route (simplified for demo)
+                const routePath = await getRouteWaypoints(route.waypoints);
+                
+                // Convert to OpenLayers coordinates
+                const coordinates = routePath.map(point => 
+                    ol.proj.fromLonLat([point.longitude, point.latitude]));
+                
+                // Create the route line
+                const routeFeature = new ol.Feature({
+                    geometry: new ol.geom.LineString(coordinates),
+                    name: `Bus ${busId}: ${route.name}`
+                });
+                
+                const routeStyle = new ol.style.Style({
+                    stroke: new ol.style.Stroke({
+                        color: route.color,
+                        width: 5,
+                        lineDash: [2, 2]
+                    })
+                });
+                
+                busRoutesPolylines[busId] = new ol.layer.Vector({
+                    source: new ol.source.Vector({
+                        features: [routeFeature]
+                    }),
+                    style: routeStyle,
+                    zIndex: 1
+                });
+                map.addLayer(busRoutesPolylines[busId]);
+                
+                // Create bus marker at first point
+                const busIcon = new ol.style.Style({
+                    image: new ol.style.Icon({
+                        src: 'https://cdn0.iconfinder.com/data/icons/small-n-flat/24/678111-map-marker-512.png',
+                        anchor: [0.5, 1],
+                        scale: 0.5,
+                        color: route.color
+                    }),
+                    text: new ol.style.Text({
+                        text: busId,
+                        offsetY: -20,
+                        fill: new ol.style.Fill({color: '#000'}),
+                        stroke: new ol.style.Stroke({color: '#fff', width: 2})
+                    })
+                });
+                
+                const busFeature = new ol.Feature({
+                    geometry: new ol.geom.Point(ol.proj.fromLonLat([
+                        route.waypoints[0].lon, 
+                        route.waypoints[0].lat
+                    ])),
+                    name: `Bus ${busId}: ${route.name}`
+                });
+                busFeature.setStyle(busIcon);
+                
+                busMarkers[busId] = new ol.layer.Vector({
+                    source: new ol.source.Vector({
+                        features: [busFeature]
+                    }),
+                    zIndex: 2
+                });
+                map.addLayer(busMarkers[busId]);
+                
+                // Store the route path for movement
+                route.routePath = routePath;
+                
+                // Add stop markers
+                addStopMarkers(busId);
+                
+            } catch (error) {
+                console.error(`Error creating route for bus ${busId}:`, error);
+                throw error;
+            }
+        }
+        
+        // Add stop markers for a route
+        function addStopMarkers(busId) {
+            const route = busRoutes[busId];
+            
+            route.stops.forEach((stop, index) => {
+                // Get every nth waypoint for stops (simplified)
+                const stopIndex = Math.floor(index * (route.waypoints.length / route.stops.length));
+                const waypoint = route.waypoints[stopIndex];
+                
+                const stopFeature = new ol.Feature({
+                    geometry: new ol.geom.Point(ol.proj.fromLonLat([
+                        waypoint.lon, 
+                        waypoint.lat
+                    ])),
+                    name: stop.name,
+                    description: `Bus ${busId}: ${route.name}<br>Facilities: ${stop.facilities.join(', ')}`
+                });
+                
+                const stopStyle = new ol.style.Style({
+                    image: new ol.style.Icon({
+                        src: 'https://cdn0.iconfinder.com/data/icons/small-n-flat/24/678111-map-marker-512.png',
+                        anchor: [0.5, 1],
+                        scale: 0.3,
+                        color: '#666'
+                    })
+                });
+                
+                stopFeature.setStyle(stopStyle);
+                
+                const stopLayer = new ol.layer.Vector({
+                    source: new ol.source.Vector({
+                        features: [stopFeature]
+                    }),
+                    zIndex: 3
+                });
+                map.addLayer(stopLayer);
+                
+                // Add click event for stop info
+                map.on('click', function(evt) {
+                    const feature = map.forEachFeatureAtPixel(evt.pixel, function(feature) {
+                        return feature;
+                    });
+                    
+                    if (feature && feature.get('name') === stop.name) {
+                        showStopInfo(feature);
+                    }
+                });
+            });
+        }
+        
+        // Show stop information
+        function showStopInfo(feature) {
+            const popup = document.createElement('div');
+            popup.className = 'ol-popup';
+            popup.innerHTML = `
+                <a href="#" class="ol-popup-closer" id="popup-closer"></a>
+                <h3>${feature.get('name')}</h3>
+                <p>${feature.get('description')}</p>
+            `;
+            
+            // Create overlay for popup
+            const overlay = new ol.Overlay({
+                element: popup,
+                positioning: 'bottom-center',
+                stopEvent: false
+            });
+            map.addOverlay(overlay);
+            overlay.setPosition(feature.getGeometry().getCoordinates());
+            
+            // Add closer event
+            document.getElementById('popup-closer').addEventListener('click', function(e) {
+                e.preventDefault();
+                map.removeOverlay(overlay);
+            });
+        }
+        
+        // Get road-aligned route waypoints
+        async function getRouteWaypoints(waypoints) {
+            // In production, use a proper routing service
+            // For demo, we'll use the predefined waypoints with slight adjustments
+            
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // Add slight curves to simulate road following
+            const routePath = [];
+            for (let i = 0; i < waypoints.length - 1; i++) {
+                const start = waypoints[i];
+                const end = waypoints[i + 1];
+                const steps = 10;
+                
+                for (let j = 0; j <= steps; j++) {
+                    const ratio = j / steps;
+                    // Add realistic curve to simulate road path
+                    const curveFactor = Math.sin(ratio * Math.PI) * 0.00015;
+                    
+                    routePath.push({
+                        latitude: start.lat + (end.lat - start.lat) * ratio + curveFactor,
+                        longitude: start.lon + (end.lon - start.lon) * ratio + curveFactor
+                    });
+                }
+            }
+            
+            return routePath;
+        }
+        
+        // Generate bus list HTML
+        function generateBusList() {
+            const busList = document.getElementById('bus-list');
+            busList.innerHTML = '';
+            
+            Object.keys(busRoutes).forEach(busId => {
+                const route = busRoutes[busId];
+                const lastStop = route.stops[route.stops.length - 1].name;
+                
+                // Calculate ETAs
+                const scheduleETA = calculateScheduleETA(busId);
+                const positionETA = calculatePositionETA(busId);
+                const progressETA = calculateProgressETA(busId);
+                
+                // Determine which ETA to show
+                let displayETA, etaDetails;
+                
+                if (positionETA !== null) {
+                    displayETA = positionETA;
+                    etaDetails = `<div class="eta-details">
+                        <div class="eta-schedule">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>Live position: ${displayETA} min</span>
+                        </div>`;
+                    
+                    if (progressETA) {
+                        etaDetails += `
+                        <div class="eta-schedule">
+                            <i class="fas fa-road"></i>
+                            <span>Route progress: ${progressETA.eta} min (${progressETA.nextStop})</span>
+                        </div>`;
+                    }
+                    
+                    if (scheduleETA) {
+                        etaDetails += `
+                        <div class="eta-schedule">
+                            <i class="fas fa-clock"></i>
+                            <span>Next scheduled: ${scheduleETA.nextDeparture} (${scheduleETA.eta} min)</span>
+                        </div>`;
+                    }
+                    
+                    etaDetails += `</div>`;
+                } else if (progressETA) {
+                    displayETA = progressETA.eta;
+                    etaDetails = `<div class="eta-details">
+                        <div class="eta-schedule">
+                            <i class="fas fa-road"></i>
+                            <span>Route progress: ${displayETA} min (${progressETA.nextStop})</span>
+                        </div>`;
+                    
+                    if (scheduleETA) {
+                        etaDetails += `
+                        <div class="eta-schedule">
+                            <i class="fas fa-clock"></i>
+                            <span>Next scheduled: ${scheduleETA.nextDeparture} ${scheduleETA.isNextDay ? '(next day)' : ''}</span>
+                        </div>`;
+                    }
+                    
+                    etaDetails += `</div>`;
+                } else if (scheduleETA) {
+                    displayETA = scheduleETA.eta;
+                    etaDetails = `<div class="eta-details">
+                        <div class="eta-schedule">
+                            <i class="fas fa-clock"></i>
+                            <span>Next scheduled: ${scheduleETA.nextDeparture} ${scheduleETA.isNextDay ? '(next day)' : ''}</span>
+                        </div>
+                    </div>`;
+                } else {
+                    displayETA = 'N/A';
+                    etaDetails = `<div class="eta-details">
+                        <div class="eta-schedule">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <span>No schedule available</span>
+                        </div>
+                    </div>`;
+                }
+                
+                const busItem = document.createElement('div');
+                busItem.className = 'bus-item';
+                busItem.setAttribute('data-bus-id', busId);
+                busItem.innerHTML = `
+                    <div>
+                        <span class="bus-number" style="background-color: ${route.color}">${busId}</span>
+                        <span>${route.name}</span>
+                    </div>
+                    <div class="bus-eta">
+                        <i class="fas fa-clock"></i> ETA: ${displayETA} min
+                    </div>
+                    ${etaDetails}
+                    <div class="bus-stops">
+                        <i class="fas fa-map-marker-alt"></i> 
+                        ${route.stops[0].name} → ${lastStop}
+                    </div>
+                    <div class="last-updated" id="last-updated-${busId}" style="font-size: 0.75rem; color: #666;">
+                        <i class="fas fa-sync-alt"></i> Updated: Just now
+                    </div>
+                    <button class="book-btn" onclick="showBusDetails('${busId}')">
+                        <i class="fas fa-info-circle"></i> Details
+                    </button>
+                `;
+                
+                busItem.addEventListener('click', function(e) {
+                    if (!e.target.closest('.book-btn')) {
+                        highlightBusRoute(busId);
+                    }
+                });
+                
+                busList.appendChild(busItem);
+                
+                // Store initial update time
+                lastUpdateTimes[busId] = new Date();
+            });
+        }
+        
+        // Calculate ETA based on schedule and current time
+        function calculateScheduleETA(busId) {
+            const route = busRoutes[busId];
+            const now = new Date();
+            const currentHours = now.getHours();
+            const currentMinutes = now.getMinutes();
+            const currentTimeInMinutes = currentHours * 60 + currentMinutes;
+            const isWeekend = [0, 6].includes(now.getDay()); // 0=Sunday, 6=Saturday
+            
+            const schedule = isWeekend ? route.schedule.weekends : route.schedule.weekdays;
+            
+            // Find the next scheduled bus
+            let nextBus = null;
+            for (const bus of schedule) {
+                if (bus.isScheduled) {
+                    const [hours, minutes] = bus.time.split(':').map(Number);
+                    const busTimeInMinutes = hours * 60 + minutes;
+                    
+                    if (busTimeInMinutes > currentTimeInMinutes) {
+                        nextBus = bus;
+                        break;
+                    }
+                }
+            }
+            
+            // If no more buses today, get first bus tomorrow
+            if (!nextBus && schedule.length > 0) {
+                nextBus = schedule[0];
+                // Add 24 hours to the time for next day
+                const [hours, minutes] = nextBus.time.split(':').map(Number);
+                const nextBusTimeInMinutes = hours * 60 + minutes + 1440; // 24*60
+                const etaMinutes = nextBusTimeInMinutes - currentTimeInMinutes;
+                return {
+                    eta: etaMinutes,
+                    nextDeparture: nextBus.time,
+                    isNextDay: true
+                };
+            }
+            
+            if (nextBus) {
+                const [hours, minutes] = nextBus.time.split(':').map(Number);
+                const nextBusTimeInMinutes = hours * 60 + minutes;
+                const etaMinutes = nextBusTimeInMinutes - currentTimeInMinutes;
+                
+                return {
+                    eta: etaMinutes,
+                    nextDeparture: nextBus.time,
+                    isNextDay: false
+                };
+            }
+            
+            return null;
+        }
+        
+        // Calculate ETA based on current bus position
+        function calculatePositionETA(busId) {
+            const route = busRoutes[busId];
+            const position = busPositions[busId];
+            
+            if (!position || !position.isActive || !userLocation) return null;
+            
+            // Calculate distance from bus to user in km
+            const distance = calculateDistance(
+                position.currentLocation.lat, position.currentLocation.lon,
+                userLocation.lat, userLocation.lon
+            );
+            
+            // Calculate ETA based on distance and speed (distance / speed * 60)
+            const etaMinutes = Math.round((distance / route.speed) * 60);
+            
+            return etaMinutes;
+        }
+        
+        // Calculate ETA based on route progress
+        function calculateProgressETA(busId) {
+            const route = busRoutes[busId];
+            const position = busPositions[busId];
+            
+            if (!position || !position.isActive) return null;
+            
+            // Find current stop progress
+            let currentStopIndex = 0;
+            let minDistance = Infinity;
+            
+            for (let i = 0; i < route.stops.length; i++) {
+                const stopIndex = Math.floor(i * (route.waypoints.length / route.stops.length));
+                const waypoint = route.waypoints[stopIndex];
+                const distance = calculateDistance(
+                    position.currentLocation.lat, position.currentLocation.lon,
+                    waypoint.lat, waypoint.lon
+                );
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    currentStopIndex = i;
+                }
+            }
+            
+            // Calculate remaining distance to next stop
+            const nextStopIndex = Math.min(currentStopIndex + 1, route.stops.length - 1);
+            const nextStop = route.stops[nextStopIndex];
+            const nextStopWaypointIndex = Math.floor(nextStopIndex * (route.waypoints.length / route.stops.length));
+            const nextStopWaypoint = route.waypoints[nextStopWaypointIndex];
+            
+            const distanceToNextStop = calculateDistance(
+                position.currentLocation.lat, position.currentLocation.lon,
+                nextStopWaypoint.lat, nextStopWaypoint.lon
+            );
+            
+            // Calculate ETA to next stop
+            const etaMinutes = Math.round((distanceToNextStop / route.speed) * 60);
+            
+            return {
+                eta: etaMinutes,
+                nextStop: nextStop.name
+            };
+        }
+        
+        // Update bus last updated display
+        function updateBusLastUpdatedDisplay(busId) {
+            const lastUpdatedElement = document.getElementById(`last-updated-${busId}`);
+            if (lastUpdatedElement) {
+                const lastUpdated = lastUpdateTimes[busId];
+                const formattedTime = formatTime(lastUpdated);
+                lastUpdatedElement.innerHTML = `<i class="fas fa-sync-alt"></i> Updated: ${formattedTime}`;
+            }
+        }
+        
+        // Show detailed bus information
+        function showBusDetails(busId) {
+            currentSelectedBus = busId;
+            const route = busRoutes[busId];
+            
+            // Calculate ETAs
+            const scheduleETA = calculateScheduleETA(busId);
+            const positionETA = calculatePositionETA(busId);
+            const progressETA = calculateProgressETA(busId);
+            
+            // Generate facilities list
+            const facilitiesList = route.facilities.map(f => 
+                `<li><i class="fas fa-check"></i> ${f.replace('-', ' ')}</li>`
+            ).join('');
+            
+            // Generate stops list
+            const stopsList = route.stops.map(stop => 
+                `<li>
+                    <strong>${stop.name}</strong>
+                    <small>${stop.facilities.join(', ')}</small>
+                </li>`
+            ).join('');
+            
+            // Generate schedule details
+            const scheduleDetails = `
+                <h4><i class="fas fa-clock"></i> Schedule</h4>
+                <div class="bus-schedule">
+                    <div class="schedule-item">
+                        <h5>Weekdays</h5>
+                        <p>${route.schedule.frequency.weekdays}</p>
+                        <p>First bus: ${route.schedule.weekdays[0].time}, Last bus: ${route.schedule.weekdays[route.schedule.weekdays.length - 1].time}</p>
+                    </div>
+                    <div class="schedule-item">
+                        <h5>Weekends</h5>
+                        <p>${route.schedule.frequency.weekends}</p>
+                        <p>First bus: ${route.schedule.weekends[0].time}, Last bus: ${route.schedule.weekends[route.schedule.weekends.length - 1].time}</p>
+                    </div>
+                </div>
+            `;
+            
+            // Generate ETA details
+            let etaDetailsHtml = '<h4><i class="fas fa-clock"></i> Estimated Arrival</h4><ul>';
+            
+            if (positionETA !== null) {
+                etaDetailsHtml += `<li><i class="fas fa-map-marker-alt"></i> <strong>Live position:</strong> ${positionETA} minutes</li>`;
+            }
+            
+            if (progressETA) {
+                etaDetailsHtml += `<li><i class="fas fa-road"></i> <strong>Next stop (${progressETA.nextStop}):</strong> ${progressETA.eta} minutes</li>`;
+            }
+            
+            if (scheduleETA) {
+                etaDetailsHtml += `<li><i class="fas fa-clock"></i> <strong>Next scheduled departure:</strong> ${scheduleETA.nextDeparture} (in ${scheduleETA.eta} minutes)</li>`;
+            }
+            
+            etaDetailsHtml += '</ul>';
+            
+            // Update bus details panel
+            document.getElementById('bus-details').innerHTML = `
+                <h3><i class="fas fa-bus" style="color: ${route.color}"></i> Bus ${busId}: ${route.name}</h3>
+                <p><i class="fas fa-route"></i> Route: ${route.stops[0].name} to ${route.stops[route.stops.length - 1].name}</p>
+                <p><i class="fas fa-building"></i> Operator: ${route.operator}</p>
+                <p><i class="fas fa-phone"></i> Contact: ${route.contact}</p>
+                <p><i class="fas fa-clock"></i> Last Updated: ${formatTime(route.lastUpdated, true)}</p>
+                
+                ${etaDetailsHtml}
+                
+                <h4 style="margin-top: 1rem;"><i class="fas fa-bus"></i> Facilities</h4>
+                <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                    ${facilitiesList}
+                </ul>
+                
+                <h4><i class="fas fa-map-marked-alt"></i> Stops</h4>
+                <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                    ${stopsList}
+                </ul>
+                
+                ${scheduleDetails}
+                
+                <h4><i class="fas fa-money-bill-wave"></i> Fare</h4>
+                <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                    <li>Normal: ₹${route.fare.normal}</li>
+                    <li>Student: ₹${route.fare.student}</li>
+                    <li>Senior Citizen: ₹${route.fare.senior}</li>
+                    <li>Monthly Pass: ₹${route.fare.monthly}</li>
+                </ul>
+                
+                <button class="book-btn" onclick="showPaymentModal('${busId}')">
+                    <i class="fas fa-ticket-alt"></i> Book Ticket
+                </button>
+            `;
+            
+            // Show the details panel
+            document.getElementById('bus-details').style.display = 'block';
+            
+            // Highlight the bus route
+            highlightBusRoute(busId);
+        }
+        
+        // Show payment modal
+        function showPaymentModal(busId) {
+            const route = busRoutes[busId];
+            
+            // Calculate ETAs
+            const scheduleETA = calculateScheduleETA(busId);
+            const positionETA = calculatePositionETA(busId);
+            const progressETA = calculateProgressETA(busId);
+            
+            // Generate ETA details for modal
+            let etaDetails = '';
+            
+            if (positionETA !== null) {
+                etaDetails += `<p><i class="fas fa-map-marker-alt"></i> <strong>Live ETA:</strong> ${positionETA} minutes</p>`;
+            }
+            
+            if (progressETA) {
+                etaDetails += `<p><i class="fas fa-road"></i> <strong>Next stop:</strong> ${progressETA.nextStop} in ${progressETA.eta} minutes</p>`;
+            }
+            
+            if (scheduleETA) {
+                etaDetails += `<p><i class="fas fa-clock"></i> <strong>Next scheduled:</strong> ${scheduleETA.nextDeparture} (in ${scheduleETA.eta} minutes)</p>`;
+            }
+            
+            // Update payment modal with bus details
+            document.getElementById('payment-bus-details').innerHTML = `
+                <h4>${route.name} (Bus ${busId})</h4>
+                <p><i class="fas fa-route"></i> ${route.stops[0].name} to ${route.stops[route.stops.length - 1].name}</p>
+                ${etaDetails}
+                <p><i class="fas fa-map-marker-alt"></i> Current location: ${getCurrentBusLocation(busId)}</p>
+            `;
+            
+            // Show the modal
+            document.getElementById('payment-modal').style.display = 'flex';
+        }
+        
+        // Get current bus location description
+        function getCurrentBusLocation(busId) {
+            const position = busPositions[busId];
+            const route = busRoutes[busId];
+            
+            if (!position || !position.isActive) return "Not in service";
+            
+            // Find nearest stop
+            let nearestStop = route.stops[0];
+            let minDistance = Infinity;
+            
+            for (let i = 0; i < route.stops.length; i++) {
+                const stopIndex = Math.floor(i * (route.waypoints.length / route.stops.length));
+                const waypoint = route.waypoints[stopIndex];
+                const distance = calculateDistance(
+                    position.currentLocation.lat, position.currentLocation.lon,
+                    waypoint.lat, waypoint.lon
+                );
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestStop = route.stops[i];
+                }
+            }
+            
+            // Determine direction
+            const nextStopIndex = Math.min(
+                Math.floor(route.stops.indexOf(nearestStop) + 1), 
+                route.stops.length - 1
+            );
+            const nextStop = route.stops[nextStopIndex];
+            
+            return `Near ${nearestStop.name}, heading towards ${nextStop.name}`;
+        }
+        
+        // Process payment
+        document.getElementById('submit-payment').addEventListener('click', function() {
+            const passengerName = document.getElementById('passenger-name').value;
+            const passengerPhone = document.getElementById('passenger-phone').value;
+            const ticketType = document.getElementById('ticket-type').value;
+            const paymentMethod = document.getElementById('payment-method').value;
+            
+            if (!passengerName || !passengerPhone) {
+                alert('Please fill in all required fields');
+                return;
+            }
+            
+            // Get fare based on ticket type
+            let fare = 0;
+            switch(ticketType) {
+                case 'single':
+                    fare = busRoutes[currentSelectedBus].fare.normal;
+                    break;
+                case 'daily':
+                    fare = 50;
+                    break;
+                case 'weekly':
+                    fare = 200;
+                    break;
+                case 'monthly':
+                    fare = busRoutes[currentSelectedBus].fare.monthly;
+                    break;
+            }
+            
+            // Create booking record
+            const booking = {
+                id: 'BK' + Date.now(),
+                busId: currentSelectedBus,
+                route: busRoutes[currentSelectedBus].name,
+                passengerName: passengerName,
+                passengerPhone: passengerPhone,
+                ticketType: ticketType,
+                fare: fare,
+                paymentMethod: paymentMethod,
+                date: new Date().toISOString(),
+                status: 'confirmed'
+            };
+            
+            // Save to localStorage
+            saveBooking(booking);
+            
+            // Show confirmation
+            alert(`Booking confirmed! Your ticket for Bus ${currentSelectedBus} has been booked.`);
+            
+            // Close modal
+            document.getElementById('payment-modal').style.display = 'none';
+            
+            // Reset form
+            document.getElementById('passenger-name').value = '';
+            document.getElementById('passenger-phone').value = '';
+        });
+        
+        // Save booking to localStorage
+        function saveBooking(booking) {
+            let bookings = JSON.parse(localStorage.getItem('busBookings')) || [];
+            bookings.push(booking);
+            localStorage.setItem('busBookings', JSON.stringify(bookings));
+        }
+        
+        // Close modal
+        document.getElementById('close-modal').addEventListener('click', function() {
+            document.getElementById('payment-modal').style.display = 'none';
+        });
+        
+        // Close modal when clicking outside
+        document.getElementById('payment-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                document.getElementById('payment-modal').style.display = 'none';
+            }
+        });
+        
+        // Start tracking user location
+        function startLocationTracking() {
+            if (navigator.geolocation) {
+                // First get quick position
+                navigator.geolocation.getCurrentPosition(
+                    position => updateUserLocation(position),
+                    error => handleLocationError(error)
+                );
+                
+                // Then watch for updates
+                locationWatchId = navigator.geolocation.watchPosition(
+                    position => updateUserLocation(position),
+                    error => handleLocationError(error),
+                    { 
+                        enableHighAccuracy: true, 
+                        maximumAge: 10000, 
+                        timeout: 15000 
+                    }
+                );
+            } else {
+                document.getElementById('location-status').innerHTML = `
+                    <i class="fas fa-exclamation-circle"></i> Geolocation not supported
+                `;
+            }
+        }
+        
+        // Update user location on map
+        function updateUserLocation(position) {
+            userLocation = {
+                lat: position.coords.latitude,
+                lon: position.coords.longitude,
+                accuracy: position.coords.accuracy
+            };
+            
+            if (!userLocationMarker) {
+                // Create marker if it doesn't exist
+                const userLocationFeature = new ol.Feature({
+                    geometry: new ol.geom.Point(ol.proj.fromLonLat([
+                        userLocation.lon, 
+                        userLocation.lat
+                    ])),
+                    name: "Your Location"
+                });
+                
+                const userLocationStyle = new ol.style.Style({
+                    image: new ol.style.Icon({
+                        src: 'https://cdn0.iconfinder.com/data/icons/small-n-flat/24/678111-map-marker-512.png',
+                        anchor: [0.5, 1],
+                        scale: 0.5,
+                        color: '#4285F4'
+                    })
+                });
+                
+                userLocationFeature.setStyle(userLocationStyle);
+                
+                userLocationMarker = new ol.layer.Vector({
+                    source: new ol.source.Vector({
+                        features: [userLocationFeature]
+                    }),
+                    zIndex: 4
+                });
+                map.addLayer(userLocationMarker);
+                
+                // Center map on user location
+                map.getView().setCenter(ol.proj.fromLonLat([
+                    userLocation.lon, 
+                    userLocation.lat
+                ]));
+                map.getView().setZoom(15);
+            } else {
+                // Update existing marker
+                const source = userLocationMarker.getSource();
+                const feature = source.getFeatures()[0];
+                feature.getGeometry().setCoordinates(ol.proj.fromLonLat([
+                    userLocation.lon, 
+                    userLocation.lat
+                ]));
+            }
+            
+            // Update status
+            document.getElementById('location-status').innerHTML = `
+                <i class="fas fa-map-marker-alt"></i> Your location (Accuracy: ${Math.round(userLocation.accuracy)}m)
+            `;
+        }
+        
+        // Handle location errors
+        function handleLocationError(error) {
+            let message = "<i class='fas fa-exclamation-triangle'></i> Location error: ";
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message += "Permission denied. Please enable location access.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message += "Position unavailable";
+                    break;
+                case error.TIMEOUT:
+                    message += "Request timeout";
+                    break;
+                default:
+                    message += "Unknown error";
+            }
+            document.getElementById('location-status').innerHTML = message;
+        }
+        
+        // Simulate bus movement along routes
+        function simulateBusMovement() {
+            Object.keys(busRoutes).forEach(busId => {
+                const route = busRoutes[busId];
+                const position = busPositions[busId];
+                
+                // Randomly activate inactive buses (for demo purposes)
+                if (!position.isActive && Math.random() > 0.9) {
+                    activateBus(busId);
+                }
+                
+                if (!position.isActive) return;
+                
+                // Calculate distance to move based on speed and time since last update
+                const now = new Date();
+                const timeDiff = (now - position.lastUpdate) / 1000; // in seconds
+                const speedMps = (route.speed * 1000) / 3600; // convert km/h to m/s
+                const distanceToMove = speedMps * timeDiff;
+                
+                // Move bus along route
+                moveBusAlongRoute(busId, distanceToMove);
+                
+                // Update last update time
+                position.lastUpdate = now;
+                lastUpdateTimes[busId] = now;
+                updateBusLastUpdatedDisplay(busId);
+                
+                // Update ETA display
+                updateETADisplay(busId);
+            });
+            
+            // Repeat every 2 seconds for smoother movement
+            setTimeout(simulateBusMovement, 2000);
+        }
+        
+        // Update ETA display for a bus
+        function updateETADisplay(busId) {
+            const route = busRoutes[busId];
+            const position = busPositions[busId];
+            const busItem = document.querySelector(`.bus-item[data-bus-id="${busId}"]`);
+            
+            if (!busItem) return;
+            
+            // Calculate ETAs
+            const scheduleETA = calculateScheduleETA(busId);
+            const positionETA = calculatePositionETA(busId);
+            const progressETA = calculateProgressETA(busId);
+            
+            // Determine which ETA to show
+            let displayETA, etaDetails;
+            
+            if (positionETA !== null) {
+                displayETA = positionETA;
+                etaDetails = `<div class="eta-details">
+                    <div class="eta-schedule">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>Live position: ${displayETA} min</span>
+                    </div>`;
+                
+                if (progressETA) {
+                    etaDetails += `
+                    <div class="eta-schedule">
+                        <i class="fas fa-road"></i>
+                        <span>Route progress: ${progressETA.eta} min (${progressETA.nextStop})</span>
+                    </div>`;
+                }
+                
+                if (scheduleETA) {
+                    etaDetails += `
+                    <div class="eta-schedule">
+                        <i class="fas fa-clock"></i>
+                        <span>Next scheduled: ${scheduleETA.nextDeparture} (${scheduleETA.eta} min)</span>
+                    </div>`;
+                }
+                
+                etaDetails += `</div>`;
+            } else if (progressETA) {
+                displayETA = progressETA.eta;
+                etaDetails = `<div class="eta-details">
+                    <div class="eta-schedule">
+                        <i class="fas fa-road"></i>
+                        <span>Route progress: ${displayETA} min (${progressETA.nextStop})</span>
+                    </div>`;
+                
+                if (scheduleETA) {
+                    etaDetails += `
+                    <div class="eta-schedule">
+                        <i class="fas fa-clock"></i>
+                        <span>Next scheduled: ${scheduleETA.nextDeparture} ${scheduleETA.isNextDay ? '(next day)' : ''}</span>
+                    </div>`;
+                }
+                
+                etaDetails += `</div>`;
+            } else if (scheduleETA) {
+                displayETA = scheduleETA.eta;
+                etaDetails = `<div class="eta-details">
+                    <div class="eta-schedule">
+                        <i class="fas fa-clock"></i>
+                        <span>Next scheduled: ${scheduleETA.nextDeparture} ${scheduleETA.isNextDay ? '(next day)' : ''}</span>
+                    </div>
+                </div>`;
+            } else {
+                displayETA = 'N/A';
+                etaDetails = `<div class="eta-details">
+                    <div class="eta-schedule">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>No schedule available</span>
+                    </div>
+                </div>`;
+            }
+            
+            // Update the ETA display
+            const etaElement = busItem.querySelector('.bus-eta');
+            if (etaElement) {
+                etaElement.innerHTML = `<i class="fas fa-clock"></i> ETA: ${displayETA} min`;
+            }
+            
+            const etaDetailsElement = busItem.querySelector('.eta-details');
+            if (etaDetailsElement) {
+                etaDetailsElement.innerHTML = etaDetails;
+            }
+        }
+        
+        // Move bus along its route
+        function moveBusAlongRoute(busId, distanceToMove) {
+            const route = busRoutes[busId];
+            const position = busPositions[busId];
+            let remainingDistance = distanceToMove;
+            
+            while (remainingDistance > 0 && position.currentIndex < route.waypoints.length - 1) {
+                const currentPoint = route.waypoints[position.currentIndex];
+                const nextPoint = route.waypoints[position.currentIndex + 1];
+                
+                // Calculate distance between current and next point
+                const segmentDistance = calculateDistance(
+                    currentPoint.lat, currentPoint.lon,
+                    nextPoint.lat, nextPoint.lon
+                ) * 1000; // convert to meters
+                
+                if (remainingDistance >= segmentDistance) {
+                    // Move to next point
+                    position.currentIndex++;
+                    remainingDistance -= segmentDistance;
+                    position.currentLocation = nextPoint;
+                } else {
+                    // Move partway along segment
+                    const ratio = remainingDistance / segmentDistance;
+                    position.currentLocation = {
+                        lat: currentPoint.lat + (nextPoint.lat - currentPoint.lat) * ratio,
+                        lon: currentPoint.lon + (nextPoint.lon - currentPoint.lon) * ratio
+                    };
+                    remainingDistance = 0;
+                }
+            }
+            
+            // If we reached the end, start over
+            if (position.currentIndex >= route.waypoints.length - 1) {
+                position.currentIndex = 0;
+                position.currentLocation = route.waypoints[0];
+                position.isActive = false; // Trip completed
+                
+                // Randomly reactivate later (for demo purposes)
+                setTimeout(() => {
+                    if (Math.random() > 0.5) {
+                        activateBus(busId);
+                    }
+                }, 30000 + Math.random() * 120000); // 30s to 2.5m delay
+            }
+            
+            // Update bus marker position
+            const source = busMarkers[busId].getSource();
+            const feature = source.getFeatures()[0];
+            feature.getGeometry().setCoordinates(ol.proj.fromLonLat([
+                position.currentLocation.lon, 
+                position.currentLocation.lat
+            ]));
+            
+            // Update last updated time for the route
+            route.lastUpdated = new Date();
+        }
+        
+        // Calculate distance between two points in km
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth radius in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+        
+        // Highlight bus route on map
+        function highlightBusRoute(busId) {
+            const route = busRoutes[busId];
+            
+            if (route.routePath) {
+                // Center map on route
+                const coordinates = route.routePath.map(point => 
+                    ol.proj.fromLonLat([point.longitude, point.latitude]));
+                
+                const extent = new ol.geom.LineString(coordinates).getExtent();
+                map.getView().fit(extent, {
+                    padding: [50, 50, 50, 50],
+                    duration: 1000
+                });
+                
+                // Highlight bus in list
+                document.querySelectorAll('.bus-item').forEach(item => {
+                    item.classList.remove('active');
+                    if (item.getAttribute('data-bus-id') === busId) {
+                        item.classList.add('active');
+                        item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                });
+                
+                // Center on current bus position
+                const position = busPositions[busId];
+                if (position && position.isActive) {
+                    map.getView().animate({
+                        center: ol.proj.fromLonLat([
+                            position.currentLocation.lon, 
+                            position.currentLocation.lat
+                        ]),
+                        zoom: 15,
+                        duration: 1000
+                    });
+                }
+            }
+        }
+        
+        // Search functionality
+        document.getElementById('search-btn').addEventListener('click', function() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            
+            if (!searchTerm) {
+                document.querySelectorAll('.bus-item').forEach(item => {
+                    item.style.display = 'flex';
+                });
+                return;
+            }
+            
+            let foundAny = false;
+            
+            document.querySelectorAll('.bus-item').forEach(item => {
+                const busId = item.getAttribute('data-bus-id');
+                const route = busRoutes[busId];
+                const text = `${busId} ${route.name} ${route.stops.map(s => s.name).join(' ')}`.toLowerCase();
+                
+                if (text.includes(searchTerm)) {
+                    item.style.display = 'flex';
+                    foundAny = true;
+                    
+                    // Highlight if exact match
+                    if (busId === searchTerm || route.name.toLowerCase().includes(searchTerm)) {
+                        highlightBusRoute(busId);
+                    }
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            if (!foundAny) {
+                alert('No buses found matching your search');
+            }
+        });
+        
+        // Allow pressing Enter in search box
+        document.getElementById('search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('search-btn').click();
+            }
+        });
+
+        // Initialize the map when the page loads
+        window.onload = initMap;
+        
+        // Expose functions to global scope for HTML onclick handlers
+        window.showBusDetails = showBusDetails;
+        window.showPaymentModal = showPaymentModal;
+    </script>
+</body>
+</html>

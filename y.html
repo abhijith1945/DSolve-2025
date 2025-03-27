@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bus Tracker & Booking</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background-color: #f0f8ff;
+            position: relative;
+        }
+        
+        nav {
+            width: 100%;
+            background-color: #2c3e50;
+            padding: 15px 0;
+            display: flex;
+            justify-content: center;
+            position: fixed;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .nav-container {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            background-color: #3498db;
+        }
+        
+        .content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            margin-top: 60px;
+            z-index: 2;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 3rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h2 {
+            color: #3498db;
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            text-decoration: none;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+        
+        /* Road Container */
+        .road-container {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 200px;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        /* Road with markings */
+        .road {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 150px;
+            background-color: #333;
+            background: linear-gradient(to bottom, #444, #222);
+        }
+        
+        .road-marking {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background: repeating-linear-gradient(
+                to right,
+                #f1c40f,
+                #f1c40f 60px,
+                transparent 60px,
+                transparent 120px
+            );
+            transform: translateY(-50%);
+            animation: moveMarking 1.5s linear infinite;
+        }
+        
+        /* Sidewalk */
+        .sidewalk {
+            position: absolute;
+            bottom: 150px;
+            width: 100%;
+            height: 30px;
+            background-color: #aaa;
+        }
+        
+        /* Bus styling */
+        .bus {
+            position: absolute;
+            width: 180px;
+            height: 60px;
+            background-color: #e74c3c;
+            border-radius: 8px 8px 0 0;
+            bottom: 150px;
+            left: -200px;
+            animation: moveBus 15s linear infinite;
+            z-index: 2;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .bus-top {
+            position: absolute;
+            width: 30px;
+            height: 20px;
+            background-color: #e74c3c;
+            top: -20px;
+            left: 20px;
+            border-radius: 5px 5px 0 0;
+        }
+        
+        .bus-wheels {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-color: #333;
+            border-radius: 50%;
+            bottom: -20px;
+            left: 20px;
+            box-shadow: 80px 0 0 #333;
+        }
+        
+        .bus-wheels:after,
+        .bus-wheels:before {
+            content: "";
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #555;
+            top: 5px;
+            left: 5px;
+        }
+        
+        .bus-wheels:before {
+            left: 85px;
+        }
+        
+        .bus-window {
+            position: absolute;
+            width: 30px;
+            height: 20px;
+            background-color: #a5d8ff;
+            top: 15px;
+            left: 30px;
+            border-radius: 3px;
+            box-shadow: 40px 0 0 #a5d8ff, 80px 0 0 #a5d8ff;
+        }
+        
+        /* Animation */
+        @keyframes moveBus {
+            0% {
+                transform: translateX(-200px);
+            }
+            100% {
+                transform: translateX(calc(100vw + 200px));
+            }
+        }
+        
+        @keyframes moveMarking {
+            0% {
+                transform: translateY(-50%) translateX(0);
+            }
+            100% {
+                transform: translateY(-50%) translateX(-120px);
+            }
+        }
+        
+        /* Different bus colors and timings */
+        .bus-2 {
+            background-color: #3498db;
+            animation-delay: 5s;
+            bottom: 150px;
+        }
+        
+        .bus-3 {
+            background-color: #2ecc71;
+            animation-delay: 10s;
+            bottom: 150px;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <a href="#" class="nav-link">Home</a>
+            <a href="#about" class="nav-link">About</a>
+            <a href="#contact" class="nav-link">Contact</a>
+        </div>
+    </nav>
+    
+    <div class="content">
+        <h1>Where is my Bus?</h1>
+        <h2>Track & Book Your Bus Journey</h2>
+        <a href="g.html" class="btn">Get Started</a>
+    </div>
+    
+    <div class="road-container">
+        <div class="sidewalk"></div>
+        <div class="road">
+            <div class="road-marking"></div>
+        </div>
+        <div class="bus">
+            <div class="bus-top"></div>
+            <div class="bus-wheels"></div>
+            <div class="bus-window"></div>
+        </div>
+        <div class="bus bus-2">
+            <div class="bus-top"></div>
+            <div class="bus-wheels"></div>
+            <div class="bus-window"></div>
+        </div>
+        <div class="bus bus-3">
+            <div class="bus-top"></div>
+            <div class="bus-wheels"></div>
+            <div class="bus-window"></div>
+        </div>
+    </div>
+    
+    <!-- About Section -->
+    <div id="about" style="display: none; padding: 100px 20px; text-align: center; background-color: white; position: relative; z-index: 3;">
+        <h2>About Us</h2>
+        <p>"Where is my Bus?" is an innovative bus tracking and booking platform designed to simplify your daily commute. Our user-friendly website provides real-time bus location updates, accurate arrival predictions, and seamless online booking capabilities. Whether you're a daily commuter or an occasional traveler, our system helps you plan your journey efficiently with live tracking, route information, and schedule alerts. The intuitive interface displays buses moving along realistic routes, giving you a clear visual representation of their progress. With additional features like contact information and an about section, we aim to create a transparent and reliable public transportation experience. Save time, reduce wait periods, and travel smarter with our comprehensive bus tracking solution that puts control of your commute right at your fingertips.</p>
+    </div>
+    
+    <!-- Contact Section -->
+    <div id="contact" style="display: none; padding: 100px 20px; text-align: center; background-color: white; position: relative; z-index: 3;">
+        <h2>Contact Us</h2>
+        <p>Email: info@bus-tracker.com</p>
+        <p>Phone: (123) 456-7890</p>
+    </div>
+    
+    <script>
+        // Simple tab functionality
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Hide all sections
+                document.querySelectorAll('div[id]').forEach(section => {
+                    section.style.display = 'none';
+                });
+                
+                // Show content section if Home is clicked
+                if (this.textContent === 'Home') {
+                    document.querySelector('.content').style.display = 'flex';
+                } 
+                // Show the selected section
+                else {
+                    const sectionId = this.getAttribute('href').substring(1);
+                    document.getElementById(sectionId).style.display = 'block';
+                    document.querySelector('.content').style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
