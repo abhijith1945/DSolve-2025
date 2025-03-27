@@ -1,21 +1,21 @@
 # 🚀 DSolve-2025 Hackathon
 
 ## 👥 Team Information
-**Team Name:** [Your Creative Team Name]  
+**Team Name: SWIFTAID 
 
 **Team Members:**
-- Member 1 Name
-- [Member 1's Github ](https://github.com/username) - Role/Contribution
-- Member 2 Name
-- [Member 2's Github](https://github.com/username) - Role/Contribution
+- Member 1 Name: Abhijith.S.Unni
+- [Member 1's Github ]abhijith1945 - developer,created base idea
+- Member 2 Name:Fuad Fysal
+- [Member 2's Github]fuad-dotcom - developer,design helping
 
 ## 💡 Project Idea
-[A clear, concise 2-3 sentence description of your project's purpose and value proposition]
+"Where is my Bus?" is a real-time bus tracking and booking platform that helps commuters easily locate buses, view routes, and book seats. Our intuitive interface shows live bus movements on a map-like road animation, while providing accurate arrival times and journey planning. With additional features like service ratings and customer support, we make public transportation more reliable and user-friendly.This is just starting of this idea, As I am planning to make this company to a finacial company that deals as a third party company that collects all the money of the private bus service sector and deals with the tax services of the company and we will be giving daily analytics of the revenue .We would be doing advices how to improve financial status of the company.
 
 ## ✨ Key Features
-- 🔍 Feature 1: [Brief description]
-- ⚡ Feature 2: [Brief description] 
-- 🛡️ Feature 3: [Brief description]
+- 🔍 Feature 1: Live location
+- ⚡ Feature 2: live time data
+- 🛡️ Feature 3: helps to decrease rush by making people aware of the upcoming bus services
 
 ## 🎥 Product Demo
 [![Watch the Demo](https://via.placeholder.com/300x200?text=Click+for+Demo+Video)](https://youtube.com/link-to-video)
@@ -24,17 +24,17 @@
 ## 🛠️ Tech Stack
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| Tech 1     | vX.X.X  |         |
-| Tech 1     | vX.X.X  |         |
-| Tech 1     | vX.X.X  |         |
+| HTML       |   5      | create an outline of website
+| CSS     |  |         |
+| JAVASCRIPT     |   |         |
 
 ## 🛠️ Setup Instructions
 
 ### Prerequisites
-- Node.js v16+ / Python 3.8+
-- npm/yarn/pip
-- [Any other requirements]
-
+- html
+- css
+- Basic social knowledge
+- javascript
 ### Installation
 ```bash
 // {Enter the commands for installation here}
